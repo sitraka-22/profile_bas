@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -11,14 +11,17 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
 
   const handleDisconnect = () => {
     onLogout();
-    navigate('/'); // Redirection automatique vers le login après déconnexion
+    navigate("/"); // Redirection automatique vers le login après déconnexion
   };
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 bg-[#1a365d] text-white shadow-md z-50 px-6 flex items-center justify-between font-sans">
       {/* Logo / Titre du Projet */}
       <div className="flex items-center gap-2">
-        <Link to={isAuthenticated ? "/dashboard" : "/"} className="text-xl font-black tracking-widest hover:text-blue-200 transition-colors">
+        <Link
+          to={isAuthenticated ? "/dashboard" : "/"}
+          className="text-xl font-black tracking-widest hover:text-blue-200 transition-colors"
+        >
           COLASS
         </Link>
         <span className="hidden sm:inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">
@@ -30,20 +33,36 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
       <div className="flex items-center gap-6">
         {isAuthenticated ? (
           <>
-            <Link 
-              to="/dashboard" 
+            <Link
+              to="/dashboard"
               className="text-sm font-semibold hover:text-blue-200 transition-colors"
             >
               Tableau de bord
             </Link>
-            
-            <Link 
-              to="/add-admin" 
+            <Link
+              to="/add-admin"
               className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
             >
               + Nouvel Admin
+            </Link>{" "}
+            <Link
+              to="/ListeProjets"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              Projet
             </Link>
-
+            <Link
+              to="/AjouterProjet"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              AjouterProjet
+            </Link>
+            <Link
+              to="/employes"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors"
+            >
+              Effectifs Personnel
+            </Link>
             {/* Bouton de déconnexion */}
             <button
               onClick={handleDisconnect}
