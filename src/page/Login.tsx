@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import api from '../service/api';
 import Navbar from "../formbuilder/navbar"
 interface LoginProps {
@@ -12,7 +12,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: ChangeEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);

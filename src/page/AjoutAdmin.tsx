@@ -1,16 +1,13 @@
 import React, { useState, FormEvent } from 'react';
-
-interface FetchError {
-    message: string;
-}
+import api from '../service/api'; 
 
 const AddAdminForm: React.FC = () => {
-    // États pour le formulaire
+    // États pour les champs de la table 'utilisateur'
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [confirmPassword, setConfirmPassword] = useState<string>('');
     
-    // États pour la gestion des retours (Succès / Erreur)
+    // États pour la gestion des retours (Succès / Erreur / Chargement)
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
@@ -20,7 +17,7 @@ const AddAdminForm: React.FC = () => {
         setError(null);
         setSuccess(null);
 
-        // Validation basique des mots de passe côté client
+        // 1. Validation de sécurité basique côté client
         if (password !== confirmPassword) {
             setError("Les mots de passe ne correspondent pas.");
             return;
@@ -34,28 +31,28 @@ const AddAdminForm: React.FC = () => {
         setLoading(true);
 
         try {
-            // Remplace l'URL par celle de ton API si nécessaire (ex: http://localhost:5000)
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
+            // 2. Appel de ton service API Axios
+            // Envoie l'email et le password qui rempliront les colonnes de ta table
+            const response = await api.post('/auth/register', { 
+                email, 
+                password 
             });
 
-            const data = await response.json();
+            // Récupération de la réponse renvoyée par le res.status(201).json(...) du backend
+            const data = response.data;
 
-            if (!response.ok) {
-                throw new Error(data.message || "Une erreur est survenue.");
-            }
-
-            // Réinitialisation en cas de succès
+            // 3. Réinitialisation des champs en cas de succès
             setSuccess(data.message || "Administrateur créé avec succès !");
             setEmail('');
             setPassword('');
             setConfirmPassword('');
         } catch (err: any) {
-            setError(err.message || "Impossible de contacter le serveur.");
+            // 4. Gestion des erreurs Axios (ex: doublon d'email intercepté par la contrainte UNIQUE)
+            if (err.response && err.response.data) {
+                setError(err.response.data.message || "Une erreur est survenue.");
+            } else {
+                setError("Impossible de joindre le serveur Express.");
+            }
         } finally {
             setLoading(false);
         }
@@ -65,10 +62,12 @@ const AddAdminForm: React.FC = () => {
         <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
             <h2>Ajouter un Administrateur</h2>
             
-            {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
-            {success && <div style={{ color: 'green', marginBottom: '15px' }}>{success}</div>}
+            {/* Affichage des messages d'état */}
+            {error && <div style={{ color: 'red', marginBottom: '15px', fontWeight: 'bold' }}>{error}</div>}
+            {success && <div style={{ color: 'green', marginBottom: '15px', fontWeight: 'bold' }}>{success}</div>}
 
             <form onSubmit={handleSubmit}>
+                {/* Champ Email (Lié à la colonne 'email') */}
                 <div style={{ marginBottom: '15px' }}>
                     <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>Adresse Email :</label>
                     <input
@@ -81,6 +80,7 @@ const AddAdminForm: React.FC = () => {
                     />
                 </div>
 
+                {/* Champ Mot de Passe (Sera haché par bcrypt côté backend avant d'aller dans 'password') */}
                 <div style={{ marginBottom: '15px' }}>
                     <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>Mot de passe :</label>
                     <input
@@ -93,6 +93,7 @@ const AddAdminForm: React.FC = () => {
                     />
                 </div>
 
+                {/* Validation du Mot de Passe */}
                 <div style={{ marginBottom: '20px' }}>
                     <label htmlFor="confirmPassword" style={{ display: 'block', marginBottom: '5px' }}>Confirmer le mot de passe :</label>
                     <input
@@ -105,10 +106,19 @@ const AddAdminForm: React.FC = () => {
                     />
                 </div>
 
+                {/* Bouton de soumission adaptatif */}
                 <button 
                     type="submit" 
                     disabled={loading}
-                    style={{ width: '100%', padding: '10px', backgroundColor: '#007BFF', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    style={{ 
+                        width: '100%', 
+                        padding: '10px', 
+                        backgroundColor: loading ? '#6c757d' : '#007BFF', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: loading ? 'not-allowed' : 'pointer' 
+                    }}
                 >
                     {loading ? 'Création en cours...' : "Créer l'administrateur"}
                 </button>
