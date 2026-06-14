@@ -35,7 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
           <>
             <Link
               to="/dashboard"
-              className="text-sm font-semibold hover:text-blue-200 transition-colors"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
             >
               Tableau de bord
             </Link>
@@ -59,9 +59,20 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
             </Link>
             <Link
               to="/employes"
-              className="text-sm font-semibold hover:text-blue-200 transition-colors"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
             >
               Effectifs Personnel
+            </Link>
+            <Link
+              to="/ressources"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              Ressources
+            </Link> <Link
+              to="/demandes"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              Demandes
             </Link>
             {/* Bouton de déconnexion */}
             <button

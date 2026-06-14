@@ -10,9 +10,13 @@ import Login from "./page/Login";
 import Dashboard from "./page/Dashboard";
 import AddAdminForm from "./page/AjoutAdmin";
 import Register from "./page/Register";
-import ListeProjets from "./page/ListeProjets";
-import AjouterProjet from "./page/AjouterProjet";
+
 import EmployeFormBuilder from "./employer/employeformbuilder";
+
+import RessourcesManager from "./ressource/ressource"; // Nouveau composant pour gérer les ressources
+import ProjetsManager from "./projets/ProjetsManager";
+import AddProjetModal from "./projets/AddProjetModal";
+import DemandesManager from "./demandes/DemandesManager";
 
 function App() {
   // État global pour savoir si l'administrateur est connecté
@@ -79,13 +83,21 @@ function App() {
           <Route
             path="/ListeProjets"
             element={
-              isAuthenticated ? <ListeProjets /> : <Navigate to="/" replace />
+              isAuthenticated ? <ProjetsManager /> : <Navigate to="/" replace />
             }
           />
           <Route
             path="/AjouterProjet"
             element={
-              isAuthenticated ? <AjouterProjet /> : <Navigate to="/" replace />
+              isAuthenticated ? (
+                <AddProjetModal
+                  isOpen={true}
+                  onClose={() => (window.location.href = "/ListeProjets")}
+                  onProjectCreated={() => (window.location.href = "/ListeProjets")}
+                />
+              ) : (
+                <Navigate to="/" replace />
+              )
             }
           />
           <Route
@@ -98,7 +110,25 @@ function App() {
               )
             }
           />
-
+          <Route
+          path="/ressources"
+          element={
+            isAuthenticated ? (
+              <RessourcesManager />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        /> <Route
+          path="/demandes"
+          element={
+            isAuthenticated ? (
+              <DemandesManager />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
           {/* Route Register de secours */}
           <Route path="/register" element={<Register />} />
         </Routes>
