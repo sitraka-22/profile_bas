@@ -13,7 +13,7 @@ import Register from "./page/Register";
 import ListeProjets from "./page/ListeProjets";
 import AjouterProjet from "./page/AjouterProjet";
 import EmployeFormBuilder from "./employer/employeformbuilder";
-
+//dogg
 function App() {
   // État global pour savoir si l'administrateur est connecté
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
