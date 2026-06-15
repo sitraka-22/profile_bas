@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import api from '../service/api';
-import Navbar from "../formbuilder/navbar"
+
 interface LoginProps {
   onLoginSuccess: () => void;
   onNavigateToRegister: () => void;
@@ -20,7 +20,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
     try {
       const response = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', response.data.token);
-      onLoginSuccess(); // Fait basculer l'application vers le Dashboard
+      onLoginSuccess();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Identifiants incorrects ou serveur injoignable.');
     } finally {
@@ -28,15 +28,9 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
     }
   };
 
-  
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 font-sans">
-    
-
-      
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-        <Navbar/>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-black text-[#1a365d] tracking-wider">COLASS</h2>
           <p className="text-sm text-gray-500 mt-1">Gestion interne des chantiers</p>
@@ -50,7 +44,9 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Adresse Email</label>
+            <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+              Adresse Email
+            </label>
             <input
               type="email"
               value={email}
@@ -63,7 +59,9 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Mot de passe</label>
+            <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+              Mot de passe
+            </label>
             <input
               type="password"
               value={password}
@@ -83,8 +81,9 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
             {isLoading ? 'Connexion en cours...' : 'Se connecter'}
           </button>
         </form>
+
         <div className="text-center mt-6">
-          <button 
+          <button
             onClick={onNavigateToRegister}
             className="text-sm text-[#1a365d] hover:underline font-medium cursor-pointer"
           >
