@@ -19,6 +19,7 @@ const ProjetsManager: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewTab, setViewTab] = useState<'Actifs' | 'Corbeille'>('Actifs');
   const [typeFilter, setTypeFilter] = useState<string>('Tous');
+  const [searchQuery, setSearchQuery] = useState<string>(''); // ← NOUVEAU
 
   useEffect(() => {
     fetchProjets();
@@ -39,7 +40,6 @@ const ProjetsManager: React.FC = () => {
     setProjets((prev) => [nouveauProjet, ...prev]);
   };
 
-  // Soft Delete → corbeille
   const handleSoftDelete = async (id: number) => {
     if (window.confirm("Voulez-vous déplacer ce projet dans la corbeille ?")) {
       try {
@@ -55,7 +55,6 @@ const ProjetsManager: React.FC = () => {
     }
   };
 
-  // Restaurer depuis la corbeille
   const handleRestore = async (id: number) => {
     try {
       const response = await api.patch(`/projets/${id}/restaurer`);
@@ -69,13 +68,11 @@ const ProjetsManager: React.FC = () => {
     }
   };
 
-  // Suppression définitive
   const handleSupprimerDefinitif = async (id: number) => {
     if (window.confirm("⚠️ Attention ! Cette action est irréversible. Supprimer définitivement ce projet ?")) {
       try {
         const response = await api.delete(`/projets/${id}/definitif`);
         if (response.status === 200) {
-          // On retire complètement le projet de l'état local
           setProjets((prev) => prev.filter((p) => p.id_projet !== id));
         }
       } catch (error) {
@@ -84,10 +81,16 @@ const ProjetsManager: React.FC = () => {
     }
   };
 
+  // Filtre combiné : onglet + type + recherche LIKE
   const projectsToDisplay = projets.filter((p) => {
     const matchView = viewTab === 'Actifs' ? !p.is_deleted : p.is_deleted;
     const matchType = typeFilter === 'Tous' ? true : p.type === typeFilter;
-    return matchView && matchType;
+    const search = searchQuery.toLowerCase().trim();
+    const matchSearch = search === ''
+      ? true
+      : p.nom_projet.toLowerCase().includes(search) ||
+      p.description?.toLowerCase().includes(search);
+    return matchView && matchType && matchSearch;
   });
 
   const formatBudget = (amount: number | null) => {
@@ -124,45 +127,82 @@ const ProjetsManager: React.FC = () => {
           </div>
         )}
 
-        {/* Double sous-menu */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex bg-gray-100 p-1 rounded-xl">
-            <button
-              onClick={() => setViewTab('Actifs')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewTab === 'Actifs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'
-                }`}
-            >
-              🏗️ Chantiers Actifs
-            </button>
-            <button
-              onClick={() => setViewTab('Corbeille')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewTab === 'Corbeille' ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-500 hover:text-red-600'
-                }`}
-            >
-              🗑️ Corbeille
-            </button>
-          </div>
+        {/* Double sous-menu + barre de recherche */}
+        <div className="flex flex-col gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
 
-          <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-xl border border-gray-200/40">
-            {['Tous', 'Route', 'Batiment', 'Pont'].map((t) => (
+          {/* Ligne 1 : onglets + filtres type */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="flex bg-gray-100 p-1 rounded-xl">
               <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1 text-xs font-medium rounded-lg transition ${typeFilter === t
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-200/70 hover:text-gray-700'
+                onClick={() => setViewTab('Actifs')}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewTab === 'Actifs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'
                   }`}
               >
-                {t === 'Tous' ? 'Tout voir' : t === 'Batiment' ? 'Bâtiments' : t + 's'}
+                🏗️ Chantiers Actifs
               </button>
-            ))}
+              <button
+                onClick={() => setViewTab('Corbeille')}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewTab === 'Corbeille' ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-500 hover:text-red-600'
+                  }`}
+              >
+                🗑️ Corbeille
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-xl border border-gray-200/40">
+              {['Tous', 'Route', 'Batiment', 'Pont'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setTypeFilter(t); setSearchQuery(''); }}
+                  className={`px-3 py-1 text-xs font-medium rounded-lg transition ${typeFilter === t
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-200/70 hover:text-gray-700'
+                    }`}
+                >
+                  {t === 'Tous' ? 'Tout voir' : t === 'Batiment' ? 'Bâtiments' : t + 's'}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Ligne 2 : barre de recherche — visible seulement si un type est sélectionné */}
+          {typeFilter !== 'Tous' && (
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Rechercher un ${typeFilter === 'Batiment' ? 'bâtiment' : typeFilter.toLowerCase()
+                  }...`}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 bg-gray-50 transition"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg font-bold"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Résumé du filtre actif */}
+          {searchQuery && (
+            <p className="text-xs text-gray-400 px-1">
+              {projectsToDisplay.length} résultat(s) pour <span className="font-semibold text-blue-500">"{searchQuery}"</span> dans {typeFilter === 'Batiment' ? 'Bâtiments' : typeFilter + 's'}
+            </p>
+          )}
         </div>
 
         {/* Grille de cartes */}
         {projectsToDisplay.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 py-16 text-center text-gray-400 italic">
-            Aucun projet correspondant aux filtres sélectionnés dans cette section.
+            {searchQuery
+              ? `Aucun résultat pour "${searchQuery}" dans cette catégorie.`
+              : 'Aucun projet correspondant aux filtres sélectionnés dans cette section.'
+            }
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -174,9 +214,19 @@ const ProjetsManager: React.FC = () => {
               >
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-bold text-gray-900 tracking-tight text-base line-clamp-2">{p.nom_projet}</h3>
+                    <h3 className="font-bold text-gray-900 tracking-tight text-base line-clamp-2">
+                      {/* Surlignage du terme recherché dans le nom */}
+                      {searchQuery && p.nom_projet.toLowerCase().includes(searchQuery.toLowerCase())
+                        ? p.nom_projet.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, i) =>
+                          part.toLowerCase() === searchQuery.toLowerCase()
+                            ? <mark key={i} className="bg-yellow-200 text-gray-900 rounded px-0.5">{part}</mark>
+                            : part
+                        )
+                        : p.nom_projet
+                      }
+                    </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${p.type === 'Route' ? 'bg-amber-100 text-amber-800' :
-                        p.type === 'Batiment' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                      p.type === 'Batiment' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
                       }`}>
                       {p.type === 'Route' ? '🛣️ Route' : p.type === 'Batiment' ? '🏢 Bâtiment' : '🌉 Pont'}
                     </span>
@@ -206,7 +256,6 @@ const ProjetsManager: React.FC = () => {
                 <div className={`px-5 py-3 border-t flex justify-end items-center gap-2 text-xs font-semibold ${p.is_deleted ? 'bg-red-50/30 border-red-100/50' : 'bg-gray-50/50 border-gray-100'
                   }`}>
                   {!p.is_deleted ? (
-                    // Bouton corbeille pour projets actifs
                     <button
                       onClick={() => handleSoftDelete(p.id_projet)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition"
@@ -214,7 +263,6 @@ const ProjetsManager: React.FC = () => {
                       🗑️ Mettre en corbeille
                     </button>
                   ) : (
-                    // Boutons restaurer + supprimer définitivement pour projets en corbeille
                     <div className="flex gap-2 items-center">
                       <span className="text-xs text-red-400 italic mr-1">En corbeille</span>
                       <button
