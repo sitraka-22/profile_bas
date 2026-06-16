@@ -74,6 +74,12 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
             >
               Demandes
             </Link>
+            <Link
+              to="/Poubeles"
+              className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              Poubele
+            </Link>
             {/* Bouton de déconnexion */}
             <button
               onClick={handleDisconnect}

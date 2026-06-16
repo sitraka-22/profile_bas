@@ -21,6 +21,7 @@ import RessourcesManager from "./ressource/ressource"; // Nouveau composant pour
 import ProjetsManager from "./projets/ProjetsManager";
 import AddProjetModal from "./projets/AddProjetModal";
 import DemandesManager from "./demandes/DemandesManager";
+import GestionPoubelles from "./poubel/poubel";
 function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const navigate = useNavigate();
   return (
@@ -99,7 +100,7 @@ function App() {
             element={isAuthenticated ? <DemandesManager /> : <Navigate to="/" replace />}
           />
           <Route
-            path="/projets"
+            path="/ListeProjets"
            
 
             element={
@@ -141,6 +142,15 @@ function App() {
           element={
             isAuthenticated ? (
               <DemandesManager />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        /> <Route
+          path="/Poubeles"
+          element={
+            isAuthenticated ? (
+              <GestionPoubelles />
             ) : (
               <Navigate to="/" replace />
             )
