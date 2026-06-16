@@ -3,19 +3,24 @@ import {
   Routes,
   Route,
   Navigate,
-  useNavigate,
-} from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Navbar from './formbuilder/navbar';
-import Login from './page/Login';
-import Register from './page/Register';
-import Dashboard from './page/Dashboard';
-import AddAdminForm from './page/AjoutAdmin';
-import ListeProjets from './page/ListeProjets';
-import AjouterProjet from './page/AjouterProjet';
-import EmployeFormBuilder from './employer/employeformbuilder';
 
-// Wrapper pour Login afin d'utiliser useNavigate
+  useNavigate,
+
+} from "react-router-dom";
+import { useState, useEffect } from "react";
+import Navbar from "./formbuilder/navbar"; // Ajusté selon l'image (src/formbuilder/navbar.tsx)
+import Login from "./page/Login";
+import Dashboard from "./page/Dashboard";
+import AddAdminForm from "./page/AjoutAdmin";
+import Register from "./page/Register";
+
+import EmployeFormBuilder from "./employer/employeformbuilder";
+
+
+import RessourcesManager from "./ressource/ressource"; // Nouveau composant pour gérer les ressources
+import ProjetsManager from "./projets/ProjetsManager";
+import AddProjetModal from "./projets/AddProjetModal";
+import DemandesManager from "./demandes/DemandesManager";
 function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const navigate = useNavigate();
   return (
@@ -89,17 +94,61 @@ function App() {
             element={isAuthenticated ? <AddAdminForm /> : <Navigate to="/" replace />}
           />
           <Route
-            path="/ListeProjets"
-            element={isAuthenticated ? <ListeProjets /> : <Navigate to="/" replace />}
+            path="/demandes"
+
+            element={isAuthenticated ? <DemandesManager /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/projets"
+           
+
+            element={
+              isAuthenticated ? <ProjetsManager /> : <Navigate to="/" replace />
+            }
           />
           <Route
             path="/AjouterProjet"
-            element={isAuthenticated ? <AjouterProjet /> : <Navigate to="/" replace />}
+            element={
+              isAuthenticated ? (
+                <AddProjetModal
+                  isOpen={true}
+                  onClose={() => (window.location.href = "/ListeProjets")}
+                  onProjectCreated={() => (window.location.href = "/ListeProjets")}
+                />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+
           />
           <Route
             path="/employes"
             element={isAuthenticated ? <EmployeFormBuilder /> : <Navigate to="/" replace />}
           />
+
+
+          <Route
+          path="/ressources"
+          element={
+            isAuthenticated ? (
+              <RessourcesManager />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        /> <Route
+          path="/demandes"
+          element={
+            isAuthenticated ? (
+              <DemandesManager />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+          {/* Route Register de secours */}
+          <Route path="/register" element={<Register />} />
+
         </Routes>
       </div>
     </Router>
