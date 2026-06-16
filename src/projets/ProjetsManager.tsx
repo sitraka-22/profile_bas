@@ -17,10 +17,10 @@ const ProjetsManager: React.FC = () => {
   const [projets, setProjets] = useState<Projet[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Sous-menu Principal : 'Actifs' ou 'Corbeille'
   const [viewTab, setViewTab] = useState<'Actifs' | 'Corbeille'>('Actifs');
-  
+
   // Sous-menu de filtre secondaire (Filtre par type de structure)
   const [typeFilter, setTypeFilter] = useState<string>('Tous');
 
@@ -31,7 +31,7 @@ const ProjetsManager: React.FC = () => {
   const fetchProjets = async () => {
     try {
       setErrorMsg(null);
-      const response = await api.get('/api/projets');
+      const response = await api.get('/projets');
       setProjets(response.data);
     } catch (error: any) {
       console.error(error);
@@ -48,7 +48,7 @@ const ProjetsManager: React.FC = () => {
   const handleSoftDelete = async (id: number) => {
     if (window.confirm("Voulez-vous suspendre ce projet et le déplacer dans la corbeille ?")) {
       try {
-        const response = await api.delete(`/api/projets/${id}`);
+        const response = await api.delete(`/projets/${id}`);
         if (response.status === 200) {
           // On met à jour l'état local pour changer son flag de suppression
           setProjets((prev) =>
@@ -64,7 +64,7 @@ const ProjetsManager: React.FC = () => {
   // Restauration depuis la corbeille
   const handleRestore = async (id: number) => {
     try {
-      const response = await api.patch(`/api/projets/restaurer/${id}`);
+      const response = await api.patch(`/projets/restaurer/${id}`);
       if (response.status === 200) {
         setProjets((prev) =>
           prev.map((p) => (p.id_projet === id ? { ...p, is_deleted: false } : p))
@@ -97,14 +97,14 @@ const ProjetsManager: React.FC = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
-        
+
         {/* En-tête */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-4 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Suivi des Chantiers & Infrastructures</h1>
             <p className="text-sm text-gray-500">Planification des chantiers routiers, ponts et bâtiments COLASS.</p>
           </div>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm py-2.5 px-4 rounded-xl shadow-lg shadow-blue-200 transition duration-150 active:scale-95"
           >
@@ -120,22 +120,20 @@ const ProjetsManager: React.FC = () => {
 
         {/* DOUBLE SOUS-MENU (NAVIGATION INTÉGRÉE) */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-          
+
           {/* Menu principal : Actifs vs Corbeille */}
           <div className="flex bg-gray-100 p-1 rounded-xl">
             <button
               onClick={() => setViewTab('Actifs')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                viewTab === 'Actifs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'
-              }`}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewTab === 'Actifs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                }`}
             >
               🏗️ Chantiers Actifs
             </button>
             <button
               onClick={() => setViewTab('Corbeille')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                viewTab === 'Corbeille' ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-500 hover:text-red-600'
-              }`}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewTab === 'Corbeille' ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-500 hover:text-red-600'
+                }`}
             >
               🗑️ Corbeille
             </button>
@@ -147,11 +145,10 @@ const ProjetsManager: React.FC = () => {
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1 text-xs font-medium rounded-lg transition ${
-                  typeFilter === t
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-200/70 hover:text-gray-700'
-                }`}
+                className={`px-3 py-1 text-xs font-medium rounded-lg transition ${typeFilter === t
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-200/70 hover:text-gray-700'
+                  }`}
               >
                 {t === 'Tous' ? 'Tout voir' : t === 'Batiment' ? 'Bâtiments' : t + 's'}
               </button>
@@ -168,20 +165,18 @@ const ProjetsManager: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projectsToDisplay.map((p) => (
-              <div 
-                key={p.id_projet} 
-                className={`bg-white rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between overflow-hidden ${
-                  p.is_deleted ? 'border-red-100 shadow-sm bg-red-50/10' : 'border-gray-100 shadow-sm'
-                }`}
+              <div
+                key={p.id_projet}
+                className={`bg-white rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between overflow-hidden ${p.is_deleted ? 'border-red-100 shadow-sm bg-red-50/10' : 'border-gray-100 shadow-sm'
+                  }`}
               >
                 {/* Corps de la Carte */}
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-start gap-2">
                     <h3 className="font-bold text-gray-900 tracking-tight text-base line-clamp-2">{p.nom_projet}</h3>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
-                      p.type === 'Route' ? 'bg-amber-100 text-amber-800' :
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${p.type === 'Route' ? 'bg-amber-100 text-amber-800' :
                       p.type === 'Batiment' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
+                      }`}>
                       {p.type === 'Route' ? '🛣️ Route' : p.type === 'Batiment' ? '🏢 Bâtiment' : '🌉 Pont'}
                     </span>
                   </div>
@@ -208,9 +203,8 @@ const ProjetsManager: React.FC = () => {
                 </div>
 
                 {/* Pied de la carte / Actions */}
-                <div className={`px-5 py-3 border-t flex justify-end items-center text-xs font-semibold ${
-                  p.is_deleted ? 'bg-red-50/30 border-red-100/50' : 'bg-gray-50/50 border-gray-100'
-                }`}>
+                <div className={`px-5 py-3 border-t flex justify-end items-center text-xs font-semibold ${p.is_deleted ? 'bg-red-50/30 border-red-100/50' : 'bg-gray-50/50 border-gray-100'
+                  }`}>
                   {!p.is_deleted ? (
                     <button
                       onClick={() => handleSoftDelete(p.id_projet)}
@@ -237,10 +231,10 @@ const ProjetsManager: React.FC = () => {
         )}
 
         {/* Injection contrôlée du Modal indépendant */}
-        <AddProjetModal 
-          isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
-          onProjectCreated={handleProjectCreated} 
+        <AddProjetModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onProjectCreated={handleProjectCreated}
         />
 
       </div>
