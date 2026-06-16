@@ -22,7 +22,7 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
   const [description, setDescription] = useState('');
   const [idProjet, setIdProjet] = useState('');
   const [idEmploye, setIdEmploye] = useState('');
-  
+
   const [projets, setProjets] = useState<Projet[]>([]);
   const [employes, setEmployes] = useState<Employe[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -34,8 +34,8 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
       const fetchLists = async () => {
         try {
           const [projetsRes, employesRes] = await Promise.all([
-            api.get('/api/projets'),
-            api.get('/api/employes') // Ajuste l'URL si ton endpoint employé est différent
+            api.get('/projets'),
+            api.get('/employes') // Ajuste l'URL si ton endpoint employé est différent
           ]);
           setProjets(projetsRes.data.filter((p: any) => !p.is_deleted));
           setEmployes(employesRes.data);
@@ -55,7 +55,7 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
     setErrorMsg(null);
 
     try {
-      const response = await api.post('/api/demandes', {
+      const response = await api.post('/demandes', {
         titre_demande: titre,
         description,
         id_projet: parseInt(idProjet, 10),
@@ -82,7 +82,7 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
   return (
     <div className="fixed inset-0 bg-gray-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 transition-all">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden transform scale-100 transition-all">
-        
+
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
           <div>
             <h2 className="text-base font-bold text-gray-800">Soumettre un besoin de terrain</h2>
@@ -100,13 +100,13 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Titre de la demande *</label>
-            <input 
-              type="text" 
-              value={titre} 
+            <input
+              type="text"
+              value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex: Achat de 20 tonnes de gravier" 
+              placeholder="Ex: Achat de 20 tonnes de gravier"
               className="w-full text-sm px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-              required 
+              required
             />
           </div>
 
@@ -142,24 +142,24 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Description détaillée des besoins</label>
-            <textarea 
-              value={description} 
+            <textarea
+              value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Spécifier les dimensions, urgences ou raisons logistiques..." 
+              placeholder="Spécifier les dimensions, urgences ou raisons logistiques..."
               rows={3}
               className="w-full text-sm px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition resize-none"
             />
           </div>
 
           <div className="flex space-x-3 pt-3 border-t border-gray-100 justify-end">
-            <button 
-              type="button" 
-              onClick={onClose} 
+            <button
+              type="button"
+              onClick={onClose}
               className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold py-2 px-4 rounded-xl transition"
             >
               Annuler
             </button>
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-5 rounded-xl shadow-md transition disabled:opacity-50"

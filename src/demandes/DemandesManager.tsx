@@ -6,7 +6,7 @@ interface Demande {
   id_demande: number;
   titre_demande: string;
   description: string;
-  statut: 'En_attente' | 'Approuve' | 'Refuse';
+  staut: 'En_attente' | 'Approuve' | 'Refuse'; // ← attention : "staut" dans la BDD
   id_projet: number;
   nom_projet: string;
   nom_employe: string;
@@ -20,21 +20,14 @@ const DemandesManager: React.FC = () => {
   const [corbeille, setCorbeille] = useState<Demande[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Vue principale : onglets de statut, + un onglet "Poubelle" séparé
   const [currentTab, setCurrentTab] = useState<string>('Tous');
   const [showCorbeille, setShowCorbeille] = useState(false);
-
-  // Recherche texte libre (titre, description, projet, employé, email)
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchDemandes = async () => {
     try {
       setErrorMsg(null);
-      const params: Record<string, string> = {};
-      if (currentTab !== 'Tous') params.statut = currentTab;
-      if (searchTerm.trim()) params.search = searchTerm.trim();
-      const response = await api.get('/api/demandes', { params });
+      const response = await api.get('/demandes'); // ← corrigé
       setDemandes(response.data);
     } catch (error) {
       console.error(error);
@@ -45,7 +38,7 @@ const DemandesManager: React.FC = () => {
   const fetchCorbeille = async () => {
     try {
       setErrorMsg(null);
-      const response = await api.get('/api/demandes/corbeille');
+      const response = await api.get('/demandes/corbeille'); // ← corrigé
       setCorbeille(response.data);
     } catch (error) {
       console.error(error);
@@ -59,15 +52,15 @@ const DemandesManager: React.FC = () => {
     } else {
       fetchDemandes();
     }
-  }, [showCorbeille, currentTab, searchTerm]);
+  }, [showCorbeille, currentTab]);
 
   const handleTraitement = async (id: number, statut: 'Approuve' | 'Refuse') => {
     try {
       setErrorMsg(null);
-      const response = await api.patch(`/api/demandes/${id}`, { statut });
+      const response = await api.patch(`/demandes/${id}`, { statut }); // ← corrigé
       if (response.status === 200) {
         setDemandes((prev) =>
-          prev.map((d) => (d.id_demande === id ? { ...d, statut } : d))
+          prev.map((d) => (d.id_demande === id ? { ...d, staut: statut } : d))
         );
       }
     } catch (error) {
@@ -75,11 +68,10 @@ const DemandesManager: React.FC = () => {
     }
   };
 
-  // Déplacer dans la corbeille (soft delete)
   const handleDelete = async (id: number) => {
     if (window.confirm("Voulez-vous déplacer cette demande vers la corbeille ?")) {
       try {
-        const response = await api.delete(`/api/demandes/${id}`);
+        const response = await api.delete(`/demandes/${id}`); // ← corrigé
         if (response.status === 200) {
           setDemandes((prev) => prev.filter((d) => d.id_demande !== id));
         }
@@ -89,10 +81,9 @@ const DemandesManager: React.FC = () => {
     }
   };
 
-  // Restaurer une demande depuis la corbeille
   const handleRestaurer = async (id: number) => {
     try {
-      const response = await api.patch(`/api/demandes/${id}/restaurer`);
+      const response = await api.patch(`/demandes/${id}/restaurer`); // ← corrigé
       if (response.status === 200) {
         setCorbeille((prev) => prev.filter((d) => d.id_demande !== id));
       }
@@ -101,11 +92,10 @@ const DemandesManager: React.FC = () => {
     }
   };
 
-  // Supprimer définitivement depuis la corbeille
   const handleDeleteDefinitif = async (id: number) => {
     if (window.confirm("Cette action est irréversible. Supprimer définitivement cette demande ?")) {
       try {
-        const response = await api.delete(`/api/demandes/${id}/definitif`);
+        const response = await api.delete(`/demandes/${id}/definitif`); // ← corrigé
         if (response.status === 200) {
           setCorbeille((prev) => prev.filter((d) => d.id_demande !== id));
         }
@@ -115,7 +105,20 @@ const DemandesManager: React.FC = () => {
     }
   };
 
-  const listeAffichee = showCorbeille ? corbeille : demandes;
+  // Filtre local par statut + recherche
+  const demandesFiltrees = demandes.filter((d) => {
+    const matchTab = currentTab === 'Tous' ? true : d.staut === currentTab;
+    const search = searchTerm.toLowerCase().trim();
+    const matchSearch = search === '' ? true :
+      d.titre_demande?.toLowerCase().includes(search) ||
+      d.description?.toLowerCase().includes(search) ||
+      d.nom_projet?.toLowerCase().includes(search) ||
+      d.nom_employe?.toLowerCase().includes(search) ||
+      d.email_demandeur?.toLowerCase().includes(search);
+    return matchTab && matchSearch;
+  });
+
+  const listeAffichee = showCorbeille ? corbeille : demandesFiltrees;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
@@ -130,13 +133,12 @@ const DemandesManager: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCorbeille((v) => !v)}
-              className={`inline-flex items-center justify-center font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition active:scale-95 ${
-                showCorbeille
-                  ? 'bg-gray-800 text-white hover:bg-gray-900'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`inline-flex items-center justify-center font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition active:scale-95 ${showCorbeille
+                ? 'bg-gray-800 text-white hover:bg-gray-900'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
-              🗑️ Poubelle {corbeille.length > 0 && !showCorbeille ? '' : ''}
+              🗑️ Poubelle
             </button>
             {!showCorbeille && (
               <button
@@ -157,7 +159,6 @@ const DemandesManager: React.FC = () => {
 
         {!showCorbeille && (
           <>
-            {/* Barre de recherche (hors id) */}
             <div className="relative max-w-md">
               <input
                 type="text"
@@ -168,17 +169,15 @@ const DemandesManager: React.FC = () => {
               />
             </div>
 
-            {/* SOUS-MENU DE FILTRAGE DES STATUTS */}
             <div className="flex space-x-1.5 bg-white p-1.5 rounded-xl border border-gray-100 shadow-xs max-w-md">
               {['Tous', 'En_attente', 'Approuve', 'Refuse'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setCurrentTab(tab)}
-                  className={`flex-1 text-center py-2 text-xs font-semibold rounded-lg transition-all ${
-                    currentTab === tab
-                      ? 'bg-blue-50 text-blue-600 shadow-xs'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
+                  className={`flex-1 text-center py-2 text-xs font-semibold rounded-lg transition-all ${currentTab === tab
+                    ? 'bg-blue-50 text-blue-600 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
                 >
                   {tab === 'Tous' ? '📁 Toutes' : tab === 'En_attente' ? '⏳ En attente' : tab === 'Approuve' ? '✅ Validées' : '❌ Rejetées'}
                 </button>
@@ -193,7 +192,7 @@ const DemandesManager: React.FC = () => {
           </div>
         )}
 
-        {/* Liste sous forme de table */}
+        {/* Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -215,7 +214,6 @@ const DemandesManager: React.FC = () => {
                 ) : (
                   listeAffichee.map((d) => (
                     <tr key={d.id_demande} className="hover:bg-gray-50/40 transition">
-
                       <td className="py-4 px-6 space-y-1 max-w-xs">
                         <div className="font-bold text-gray-900 text-sm">{d.titre_demande}</div>
                         <p className="text-gray-400 line-clamp-2">{d.description || 'Aucun détail fourni.'}</p>
@@ -226,7 +224,9 @@ const DemandesManager: React.FC = () => {
 
                       <td className="py-4 px-6 space-y-1">
                         <div className="font-semibold text-gray-800">🏗️ {d.nom_projet}</div>
-                        <div className="text-gray-500 text-[11px]">Chef de chantier : <span className="font-medium text-gray-700">{d.nom_employe}</span></div>
+                        <div className="text-gray-500 text-[11px]">
+                          Chef de chantier : <span className="font-medium text-gray-700">{d.nom_employe}</span>
+                        </div>
                       </td>
 
                       <td className="py-4 px-6">
@@ -235,12 +235,11 @@ const DemandesManager: React.FC = () => {
                             {d.delete_at ? new Date(d.delete_at).toLocaleString('fr-FR') : '—'}
                           </span>
                         ) : (
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            d.statut === 'Approuve' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            d.statut === 'Refuse' ? 'bg-red-50 text-red-700 border border-red-200' :
-                            'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
-                          }`}>
-                            {d.statut === 'Approuve' ? '● Validée' : d.statut === 'Refuse' ? '● Refusée' : '● En traitement'}
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${d.staut === 'Approuve' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            d.staut === 'Refuse' ? 'bg-red-50 text-red-700 border border-red-200' :
+                              'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
+                            }`}>
+                            {d.staut === 'Approuve' ? '● Validée' : d.staut === 'Refuse' ? '● Refusée' : '● En traitement'}
                           </span>
                         )}
                       </td>
@@ -263,7 +262,7 @@ const DemandesManager: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            {d.statut === 'En_attente' && (
+                            {d.staut === 'En_attente' && (
                               <>
                                 <button
                                   onClick={() => handleTraitement(d.id_demande, 'Approuve')}
@@ -289,7 +288,6 @@ const DemandesManager: React.FC = () => {
                           </>
                         )}
                       </td>
-
                     </tr>
                   ))
                 )}
@@ -303,7 +301,6 @@ const DemandesManager: React.FC = () => {
           onClose={() => setIsModalOpen(false)}
           onDemandeCreated={fetchDemandes}
         />
-
       </div>
     </div>
   );
