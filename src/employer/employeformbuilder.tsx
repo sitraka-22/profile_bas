@@ -6,10 +6,17 @@ interface Employe {
   nom: string;
   prenom: string;
   telephone: string;
-  poste: string;
+  poste:
+    | "Chef_Chantier"
+    | "Conducteur_Travaux"
+    | "Ingenieur"
+    | "Macon"
+    | "Chauffeur_Engin"
+    | "Ouvrier";
   salaire_journalier: number;
   id_projet: number | null;
   nom_projet: string | null;
+  is_delete?: boolean;
 }
 
 interface Projet {
@@ -17,32 +24,68 @@ interface Projet {
   nom_projet: string;
 }
 
+interface Toast {
+  id: number;
+  type: "success" | "error" | "info";
+  message: string;
+}
+
 export default function EmployeFormBuilder() {
   // États de données
   const [employes, setEmployes] = useState<Employe[]>([]);
   const [projets, setProjets] = useState<Projet[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // États de filtrage et recherche
+  // États de filtrage, recherche et sous-menus
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPoste, setSelectedPoste] = useState("");
   const [selectedProjet, setSelectedProjet] = useState("");
+
+  // Onglets mis à jour avec la Corbeille
   const [currentTab, setCurrentTab] = useState<
-    "tous" | "actifs" | "non_assignes"
+    "tous" | "actifs" | "non_assignes" | "corbeille"
   >("tous");
+
+  // États de la boîte modale d'embauche
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [nom, setNom] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [poste, setPoste] = useState<Employe["poste"]>("Ouvrier");
+  const [salaire, setSalaire] = useState<number>(20000);
+  const [projetEmbauche, setProjetEmbauche] = useState<string>("null");
+
+  // États de pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // États d'affichage
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  // Chargement des données au démarrage
+  // Gestion des notifications (Toasts)
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "info" = "success",
+  ) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  // Réinitialisation de la page lors d'un changement de filtre ou d'onglet
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedPoste, selectedProjet, currentTab]);
+
   useEffect(() => {
     fetchData();
-  }, [selectedPoste, selectedProjet]); // Se déclenche aussi quand les filtres BDD changent
+  }, [selectedPoste, selectedProjet]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Construction des requêtes avec Query Parameters pour le backend
       let url = "/employes";
       const params = new URLSearchParams();
       if (selectedPoste) params.append("poste", selectedPoste);
@@ -51,35 +94,175 @@ export default function EmployeFormBuilder() {
 
       const [employesRes, projetsRes] = await Promise.all([
         api.get(url),
-        api.get("/projets"), // Assure-toi d'avoir cette route globale pour peupler le sélecteur
+        api.get("/projets"),
       ]);
 
       setEmployes(employesRes.data);
       setProjets(projetsRes.data);
     } catch (err: any) {
-      setError("Erreur lors de la récupération des données de l'effectif.");
+      showToast(
+        "Impossible de charger les employés depuis le serveur.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Action : Supprimer / Licencier un employé
-  const handleTerminateContract = async (id: number) => {
+  // [POST] : Enregistrer un employé
+  const handleCreateEmploye = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const id_projet =
+        projetEmbauche === "null" ? null : parseInt(projetEmbauche, 10);
+
+      const response = await api.post("/employes", {
+        nom,
+        prenom,
+        telephone,
+        poste,
+        salaire_journalier: Number(salaire),
+        id_projet,
+        id_utilisateur: null,
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        const projetAssocie = projets.find((p) => p.id_projet === id_projet);
+        const nouvelEmp: Employe = {
+          ...response.data,
+          nom_projet: projetAssocie ? projetAssocie.nom_projet : null,
+          is_delete: false,
+        };
+
+        setEmployes((prev) => [nouvelEmp, ...prev]);
+        setIsModalOpen(false);
+
+        setNom("");
+        setPrenom("");
+        setTelephone("");
+        setSalaire(20000);
+        showToast(
+          `L'employé ${nom.toUpperCase()} a été enregistré.`,
+          "success",
+        );
+      }
+    } catch (err: any) {
+      showToast("Erreur lors de la création de la fiche employé.", "error");
+    }
+  };
+
+  // [PATCH] : Mutation de chantier (URL CORRIGÉE ICI)
+  const handleMutation = async (
+    id_employe: number,
+    id_projet_selectionne: string,
+  ) => {
+    const id_projet =
+      id_projet_selectionne === "null"
+        ? null
+        : parseInt(id_projet_selectionne, 10);
+
+    try {
+      // Ajout de /chantier pour correspondre au routeur backend express
+      const response = await api.patch(`/employes/${id_employe}/chantier`, {
+        id_projet,
+      });
+
+      if (response.status === 200) {
+        setEmployes((prevEmployes) =>
+          prevEmployes.map((emp) => {
+            if (emp.id_employe === id_employe) {
+              const projetAssocie = projets.find(
+                (p) => p.id_projet === id_projet,
+              );
+              return {
+                ...emp,
+                id_projet: id_projet,
+                nom_projet: projetAssocie ? projetAssocie.nom_projet : null,
+              };
+            }
+            return emp;
+          }),
+        );
+        showToast("Mutation du personnel enregistrée avec succès.", "success");
+      }
+    } catch (err: any) {
+      console.error("Erreur mutation:", err);
+      showToast("Erreur lors du transfert de chantier.", "error");
+    }
+  };
+
+  // [DELETE] : Soft Delete (Déplacer vers la corbeille)
+  const handleSoftDelete = async (id: number, nomComplet: string) => {
     if (
       window.confirm(
-        "Êtes-vous sûr de vouloir retirer cet employé des effectifs de COLASS ?",
+        `Voulez-vous envoyer "${nomComplet.toUpperCase()}" dans la corbeille ?`,
       )
     ) {
       try {
-        await api.delete(`/employes/${id}`);
-        setEmployes(employes.filter((emp) => emp.id_employe !== id));
+        const response = await api.delete(`/employes/${id}`);
+        if (response.status === 200) {
+          setEmployes((prev) =>
+            prev.map((emp) =>
+              emp.id_employe === id ? { ...emp, is_delete: true } : emp,
+            ),
+          );
+          showToast(
+            `"${nomComplet.toUpperCase()}" déplacé dans la corbeille.`,
+            "info",
+          );
+        }
       } catch (err) {
-        alert("Impossible de supprimer cet employé.");
+        showToast("Erreur lors de l'envoi à la corbeille.", "error");
       }
     }
   };
 
-  // Filtrage combiné local (Recherche textuelle + Onglets du sous-menu)
+  // [PATCH] : Restaurer depuis la corbeille
+  const handleRestore = async (id: number, nomComplet: string) => {
+    try {
+      const response = await api.patch(`/employes/${id}/restore`);
+      if (response.status === 200) {
+        setEmployes((prev) =>
+          prev.map((emp) =>
+            emp.id_employe === id ? { ...emp, is_delete: false } : emp,
+          ),
+        );
+        showToast(
+          `"${nomComplet.toUpperCase()}" a été restauré avec succès.`,
+          "success",
+        );
+      }
+    } catch (err) {
+      showToast("Erreur lors de la restauration de l'employé.", "error");
+    }
+  };
+
+  // [DELETE] : Hard Delete (Suppression définitive)
+  const handleHardDelete = async (id: number, nomComplet: string) => {
+    if (
+      window.confirm(
+        `⚠️ ATTENTION : Voulez-vous supprimer définitivement "${nomComplet.toUpperCase()}" ? Cette action est irréversible.`,
+      )
+    ) {
+      try {
+        const response = await api.delete(`/employes/${id}/permanent`);
+        if (response.status === 200) {
+          setEmployes((prev) => prev.filter((emp) => emp.id_employe !== id));
+          showToast(
+            `Fiche de "${nomComplet.toUpperCase()}" définitivement supprimée.`,
+            "success",
+          );
+        }
+      } catch (err) {
+        showToast(
+          "Impossible de supprimer définitivement cet employé.",
+          "error",
+        );
+      }
+    }
+  };
+
+  // Séparation du filtrage selon les onglets et la Corbeille
   const filteredEmployes = employes.filter((emp) => {
     const matchesSearch =
       emp.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -87,17 +270,57 @@ export default function EmployeFormBuilder() {
         emp.prenom.toLowerCase().includes(searchQuery.toLowerCase())) ||
       emp.telephone.includes(searchQuery);
 
-    if (currentTab === "actifs") {
-      return matchesSearch && emp.id_projet !== null;
+    // Gestion de l'état Corbeille vs Actifs
+    if (currentTab === "corbeille") {
+      return matchesSearch && emp.is_delete === true;
+    } else {
+      if (emp.is_delete === true) return false; // Cacher les éléments supprimés des autres onglets
+      if (currentTab === "actifs")
+        return matchesSearch && emp.id_projet !== null;
+      if (currentTab === "non_assignes")
+        return matchesSearch && emp.id_projet === null;
+      return matchesSearch;
     }
-    if (currentTab === "non_assignes") {
-      return matchesSearch && emp.id_projet === null;
-    }
-    return matchesSearch;
   });
 
+  // Découpage Pagination
+  const totalItems = filteredEmployes.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredEmployes.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
+
   return (
-    <div className="p-6 max-w-7xl mx-auto font-sans">
+    <div className="p-6 max-w-7xl mx-auto font-sans relative">
+      {/* ZONE POPUPS (TOASTS) */}
+      <div className="fixed top-5 right-5 z-50 space-y-2 max-w-sm w-full pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto p-4 rounded-xl shadow-xl border text-sm font-semibold flex justify-between items-center transform transition-all duration-300 animate-in fade-in slide-in-from-top-5 ${
+              toast.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800 shadow-green-100/50"
+                : toast.type === "error"
+                  ? "bg-red-50 border-red-200 text-red-800 shadow-red-100/50"
+                  : "bg-blue-50 border-blue-200 text-blue-800 shadow-blue-100/50"
+            }`}
+          >
+            <span>{toast.message}</span>
+            <button
+              onClick={() =>
+                setToasts((prev) => prev.filter((t) => t.id !== toast.id))
+              }
+              className="ml-4 text-gray-400 hover:text-gray-600 font-bold text-lg"
+            >
+              &times;
+            </button>
+          </div>
+        ))}
+      </div>
+
       {/* En-tête principal */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
@@ -105,65 +328,50 @@ export default function EmployeFormBuilder() {
             Gestion du Personnel
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Suivi des affectations, postes et rémunérations journalières de la
-            COLASS.
+            Suivi des affectations, mutations et corbeille de l'effectif COLASS.
           </p>
         </div>
-        <button className="bg-[#1a365d] hover:bg-[#2b6cb0] text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer">
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Embaucher un employé
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-[#1a365d] hover:bg-[#2b6cb0] text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95"
+        >
+          ➕ Embaucher un employé
         </button>
       </div>
 
-      {/* --- SOUS-MENU DE NAVIGATION (CONTAINER TABS) --- */}
+      {/* Sous-menu / Onglets avec ajout de la corbeille */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-6" aria-label="Tabs">
-          <button
-            onClick={() => setCurrentTab("tous")}
-            className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all cursor-pointer ${
-              currentTab === "tous"
-                ? "border-[#1a365d] text-[#1a365d] font-bold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            Tous les employés ({employes.length})
-          </button>
-          <button
-            onClick={() => setCurrentTab("actifs")}
-            className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all cursor-pointer ${
-              currentTab === "actifs"
-                ? "border-[#1a365d] text-[#1a365d] font-bold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            Assignés à un chantier
-          </button>
-          <button
-            onClick={() => setCurrentTab("non_assignes")}
-            className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all cursor-pointer ${
-              currentTab === "non_assignes"
-                ? "border-[#1a365d] text-[#1a365d] font-bold"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            En attente d'affectation
-          </button>
+        <nav className="flex gap-6 flex-wrap">
+          {[
+            {
+              id: "tous",
+              label: `Tous (${employes.filter((e) => !e.is_delete).length})`,
+            },
+            { id: "actifs", label: "Assignés à un chantier" },
+            { id: "non_assignes", label: "En attente d'affectation" },
+            {
+              id: "corbeille",
+              label: `🗑️ Corbeille (${employes.filter((e) => e.is_delete).length})`,
+            },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentTab(tab.id as any)}
+              className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all cursor-pointer ${
+                currentTab === tab.id
+                  ? currentTab === "corbeille"
+                    ? "border-red-500 text-red-600 font-bold"
+                    : "border-[#1a365d] text-[#1a365d] font-bold"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
       </div>
 
-      {/* Barre de Recherche et Filtres Sélecteurs */}
+      {/* Filtres de Recherche */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-1 relative">
           <input
@@ -171,45 +379,32 @@ export default function EmployeFormBuilder() {
             placeholder="Rechercher par nom, prénom ou téléphone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0] text-sm text-gray-800"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0] text-sm text-gray-800 focus:ring-2 focus:ring-blue-100 transition-all"
           />
-          <svg
-            className="w-5 h-5 text-gray-400 absolute left-3 top-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <span className="absolute left-3 top-3 text-gray-400">🔍</span>
         </div>
 
-        {/* Filtre Poste */}
         <div className="w-full md:w-48">
           <select
             value={selectedPoste}
             onChange={(e) => setSelectedPoste(e.target.value)}
-            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0] text-sm text-gray-700"
+            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-[#2b6cb0]"
           >
             <option value="">Tous les postes</option>
             <option value="Chef_Chantier">Chef de Chantier</option>
-            <option value="Macon">Maçon</option>
+            <option value="Conducteur_Travaux">Conducteur de Travaux</option>
             <option value="Ingenieur">Ingénieur</option>
-            <option value="Chauffeur">Chauffeur</option>
-            <option value="Manœuvre">Manœuvre</option>
+            <option value="Macon">Maçon</option>
+            <option value="Chauffeur_Engin">Chauffeur d'Engin</option>
+            <option value="Ouvrier">Ouvrier</option>
           </select>
         </div>
 
-        {/* Filtre Chantier / Projet */}
         <div className="w-full md:w-56">
           <select
             value={selectedProjet}
             onChange={(e) => setSelectedProjet(e.target.value)}
-            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0] text-sm text-gray-700"
+            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-[#2b6cb0]"
           >
             <option value="">Tous les chantiers</option>
             {projets.map((p) => (
@@ -221,20 +416,14 @@ export default function EmployeFormBuilder() {
         </div>
       </div>
 
-      {/* Zone Table / Résultats */}
-      {error && (
-        <div className="p-4 bg-red-50 text-red-700 border border-red-100 rounded-xl mb-6 text-sm">
-          {error}
-        </div>
-      )}
-
+      {/* Tableau d'affichage */}
       {loading ? (
         <div className="text-center py-12 text-gray-500 font-medium">
-          Chargement des effectifs de l'entreprise...
+          Chargement des effectifs...
         </div>
-      ) : filteredEmployes.length === 0 ? (
+      ) : currentItems.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-gray-500">
-          Aucun employé ne correspond à vos critères actuels.
+          Aucun employé trouvé dans cette catégorie.
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
@@ -244,22 +433,26 @@ export default function EmployeFormBuilder() {
                 <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-600 uppercase tracking-wider">
                   <th className="px-6 py-4">Nom complet</th>
                   <th className="px-6 py-4">Téléphone</th>
-                  <th className="px-6 py-4">Poste occupé</th>
-                  <th className="px-6 py-4">Chantier assigné</th>
+                  <th className="px-6 py-4">Poste</th>
+                  <th className="px-6 py-4">
+                    {currentTab === "corbeille"
+                      ? "Statut"
+                      : "Chantier Muté / Affecté"}
+                  </th>
                   <th className="px-6 py-4 text-right">Salaire Journalier</th>
                   <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                {filteredEmployes.map((emp) => (
+                {currentItems.map((emp) => (
                   <tr
                     key={emp.id_employe}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50/60 transition-colors"
                   >
                     <td className="px-6 py-4 font-semibold text-gray-900">
                       {emp.nom.toUpperCase()} {emp.prenom || ""}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 font-mono text-xs">
+                    <td className="px-6 py-4 font-mono text-xs text-gray-600">
                       {emp.telephone}
                     </td>
                     <td className="px-6 py-4">
@@ -268,17 +461,27 @@ export default function EmployeFormBuilder() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {emp.id_projet ? (
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                          <span className="font-medium text-gray-800">
-                            {emp.nom_projet}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-100">
-                          Non assigné
+                      {currentTab === "corbeille" ? (
+                        <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded font-medium">
+                          Masqué (Corbeille)
                         </span>
+                      ) : (
+                        <select
+                          value={emp.id_projet || "null"}
+                          onChange={(e) =>
+                            handleMutation(emp.id_employe, e.target.value)
+                          }
+                          className="text-sm px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="null">
+                            📦 Aucun chantier (Disponible)
+                          </option>
+                          {projets.map((p) => (
+                            <option key={p.id_projet} value={p.id_projet}>
+                              🏗️ {p.nom_projet}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right font-bold font-mono text-gray-900">
@@ -286,54 +489,226 @@ export default function EmployeFormBuilder() {
                       Ar
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-3">
-                        {/* Bouton Mutation */}
-                        <button
-                          title="Changement de chantier"
-                          className="text-blue-600 hover:text-blue-800 transition-colors p-1.5 hover:bg-blue-50 rounded-lg cursor-pointer"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      {currentTab === "corbeille" ? (
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() =>
+                              handleRestore(
+                                emp.id_employe,
+                                `${emp.nom} ${emp.prenom}`,
+                              )
+                            }
+                            className="text-green-600 hover:text-green-800 font-bold text-xs bg-green-50 px-2 py-1 rounded transition"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            />
-                          </svg>
-                        </button>
-                        {/* Bouton Suppression */}
+                            Restaurer
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleHardDelete(
+                                emp.id_employe,
+                                `${emp.nom} ${emp.prenom}`,
+                              )
+                            }
+                            className="text-red-600 hover:text-red-900 font-bold text-xs bg-red-50 px-2 py-1 rounded transition"
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           onClick={() =>
-                            handleTerminateContract(emp.id_employe)
+                            handleSoftDelete(
+                              emp.id_employe,
+                              `${emp.nom} ${emp.prenom}`,
+                            )
                           }
-                          title="Résilier le contrat"
-                          className="text-red-500 hover:text-red-700 transition-colors p-1.5 hover:bg-red-50 rounded-lg cursor-pointer"
+                          title="Mettre à la corbeille"
+                          className="text-amber-500 hover:text-amber-700 p-1.5 hover:bg-amber-50 rounded-lg transition"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-11V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
+                          🗑️
                         </button>
-                      </div>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Pied de Page (S'affiche uniquement si plus de 10 éléments) */}
+          {totalPages > 1 && (
+            <div className="bg-gray-50/70 border-t border-gray-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs text-gray-500 font-medium">
+                Affichage de{" "}
+                <span className="font-bold text-gray-800">
+                  {indexOfFirstItem + 1}
+                </span>{" "}
+                à{" "}
+                <span className="font-bold text-gray-800">
+                  {Math.min(indexOfLastItem, totalItems)}
+                </span>{" "}
+                sur{" "}
+                <span className="font-bold text-gray-800">{totalItems}</span>{" "}
+                employés
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${currentPage === 1 ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+                >
+                  ◀ Précédent
+                </button>
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold ${currentPage === i + 1 ? "bg-[#1a365d] text-white" : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${currentPage === totalPages ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+                >
+                  Suivant ▶
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* BOÎTE MODALE EMBAUCHER UN EMPLOYÉ */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl border max-w-lg w-full overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-[#1a365d]">
+                Fiche de Recrutement (COLASS)
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleCreateEmploye} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Nom *
+                  </label>
+                  <input
+                    type="text"
+                    value={nom}
+                    onChange={(e) => setNom(e.target.value)}
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Prénom
+                  </label>
+                  <input
+                    type="text"
+                    value={prenom}
+                    onChange={(e) => setPrenom(e.target.value)}
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Téléphone *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: 0340000000"
+                  value={telephone}
+                  onChange={(e) => setTelephone(e.target.value)}
+                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0]"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Poste *
+                  </label>
+                  <select
+                    value={poste}
+                    onChange={(e) => setPoste(e.target.value as any)}
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#2b6cb0]"
+                  >
+                    <option value="Chef_Chantier">Chef de Chantier</option>
+                    <option value="Conducteur_Travaux">
+                      Conducteur de Travaux
+                    </option>
+                    <option value="Ingenieur">Ingénieur</option>
+                    <option value="Macon">Maçon</option>
+                    <option value="Chauffeur_Engin">Chauffeur d'Engin</option>
+                    <option value="Ouvrier">Ouvrier</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Salaire Journalier (Ar) *
+                  </label>
+                  <input
+                    type="number"
+                    min="5000"
+                    value={salaire}
+                    onChange={(e) =>
+                      setSalaire(parseInt(e.target.value, 10) || 0)
+                    }
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2b6cb0]"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Affectation de départ
+                </label>
+                <select
+                  value={projetEmbauche}
+                  onChange={(e) => setProjetEmbauche(e.target.value)}
+                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#2b6cb0]"
+                >
+                  <option value="null">En Stock (Non affecté)</option>
+                  {projets.map((p) => (
+                    <option key={p.id_projet} value={p.id_projet}>
+                      🏗️ {p.nom_projet}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm py-2 px-4 rounded-lg transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#1a365d] hover:bg-blue-800 text-white font-medium text-sm py-2 px-4 rounded-lg shadow transition"
+                >
+                  Enregistrer & Signer
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
