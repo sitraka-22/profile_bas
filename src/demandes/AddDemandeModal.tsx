@@ -65,6 +65,7 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({ isOpen, onClose, onDe
       if (response.status === 201 || response.status === 200) {
         // Optionnel : Comme le backend renvoie le row brut sans les jointures textuelles,
         // on déclenche un rafraîchissement global dans le parent pour avoir les noms propres.
+        //lalalalalalla
         onDemandeCreated(response.data);
         setTitre('');
         setDescription('');
