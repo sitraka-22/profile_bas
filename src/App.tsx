@@ -19,7 +19,7 @@ import EmployeFormBuilder from "./employer/employeformbuilder";
 
 import RessourcesManager from "./ressource/ressource"; // Nouveau composant pour gérer les ressources
 import ProjetsManager from "./projets/ProjetsManager";
-import AddProjetModal from "./projets/AddProjetModal";
+import ProjetsChart from "./projets/ProjetsChart";
 import DemandesManager from "./demandes/DemandesManager";
 import GestionPoubelles from "./poubel/poubel";
 function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
@@ -111,17 +111,42 @@ function App() {
             path="/AjouterProjet"
             element={
               isAuthenticated ? (
-                <AddProjetModal
-                  isOpen={true}
-                  onClose={() => (window.location.href = "/ListeProjets")}
-                  onProjectCreated={() => (window.location.href = "/ListeProjets")}
+                <ProjetsChart
+                  projets={[
+                    {
+                      nom: 'Projet A',
+                      type: 'Route',
+                      date_debut: '2023-01-01',
+                      date_fin_prevue: '2023-12-31',
+                      budget: 1000000,
+                      is_deleted: false,
+                    },
+                    {
+                      nom: 'Projet B',
+                      type: 'Batiment',
+                      date_debut: '2023-02-01',
+                      date_fin_prevue: '2023-11-30',
+                      budget: 2000000,
+                      is_deleted: false,
+                    },
+                    {
+                      nom: 'Projet C',
+                      type: 'Pont',
+                      date_debut: '2023-03-01',
+                      date_fin_prevue: '2023-10-31',
+                      budget: 1500000,
+                      is_deleted: true, // Projet supprimé, ne sera pas pris en compte dans le graphique
+                    },
+                  ]}
                 />
               ) : (
                 <Navigate to="/" replace />
               )
             }
-
           />
+          
+
+          
           <Route
             path="/employes"
             element={isAuthenticated ? <EmployeFormBuilder /> : <Navigate to="/" replace />}

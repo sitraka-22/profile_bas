@@ -12,16 +12,26 @@ interface Employe {
   prenom?: string;
 }
 
-interface AddDemandeModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onDemandeCreated: (nouvelleDemande: any) => void;
+interface Demande {
+  id_demande: number;
+  titre_demande: string;
+  description: string;
+  id_projet: number;
+  id_employe?: number;
 }
 
-const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
+interface EditDemandeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  demande: Demande | null;
+  onDemandeUpdated: () => void;
+}
+
+const EditDemandeModal: React.FC<EditDemandeModalProps> = ({
   isOpen,
   onClose,
-  onDemandeCreated,
+  demande,
+  onDemandeUpdated,
 }) => {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
@@ -33,6 +43,7 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Charger les listes de liaison au chargement
   useEffect(() => {
     if (isOpen) {
       const fetchLists = async () => {
@@ -41,21 +52,29 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
             api.get("/projets"),
             api.get("/employes"),
           ]);
-          // Filtrer les projets non supprimés
           setProjets(
             projetsRes.data.filter((p: any) => !p.is_deleted && !p.is_delete),
           );
-          // Filtrer également les employés actifs non jetés à la corbeille
           setEmployes(employesRes.data.filter((e: any) => !e.is_delete));
         } catch (err) {
-          console.error("Erreur chargement des listes de liaison :", err);
+          console.error("Erreur chargement des listes :", err);
         }
       };
       fetchLists();
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Remplir les champs lorsque la demande sélectionnée change
+  useEffect(() => {
+    if (demande) {
+      setTitre(demande.titre_demande || "");
+      setDescription(demande.description || "");
+      setIdProjet(String(demande.id_projet || ""));
+      setIdEmploye(String(demande.id_employe || ""));
+    }
+  }, [demande, isOpen]);
+
+  if (!isOpen || !demande) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,25 +82,21 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const response = await api.post("/demandes", {
+      const response = await api.put(`/demandes/${demande.id_demande}`, {
         titre_demande: titre,
         description,
         id_projet: parseInt(idProjet, 10),
         id_employe: parseInt(idEmploye, 10),
       });
 
-      if (response.status === 201 || response.status === 200) {
-        onDemandeCreated(response.data);
-        setTitre("");
-        setDescription("");
-        setIdProjet("");
-        setIdEmploye("");
+      if (response.status === 200) {
+        onDemandeUpdated();
         onClose();
       }
     } catch (error: any) {
       setErrorMsg(
         error.response?.data?.error ||
-          "Erreur lors de la soumission de la fiche.",
+          "Erreur lors de la mise à jour de la demande.",
       );
     } finally {
       setLoading(false);
@@ -89,15 +104,15 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 transition-all">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden transform scale-100 transition-all">
+    <div className="fixed inset-0 bg-gray-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
           <div>
             <h2 className="text-base font-bold text-gray-800">
-              Soumettre un besoin de terrain
+              Modifier la demande logistique
             </h2>
             <p className="text-xs text-gray-400">
-              Demande d'approvisionnement ou de main d'œuvre COLASS.
+              Ajustement des spécifications du besoin terrain.
             </p>
           </div>
           <button
@@ -123,20 +138,19 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
               type="text"
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex: Achat de 20 tonnes de gravier"
-              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
               required
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Chantier concerné (id_projet) *
+              Chantier rattaché *
             </label>
             <select
               value={idProjet}
               onChange={(e) => setIdProjet(e.target.value)}
-              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               required
             >
               <option value="">-- Sélectionner le chantier --</option>
@@ -150,12 +164,12 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Employé émetteur (id_employe) *
+              Employé émetteur *
             </label>
             <select
               value={idEmploye}
               onChange={(e) => setIdEmploye(e.target.value)}
-              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               required
             >
               <option value="">-- Responsable sur site --</option>
@@ -169,14 +183,13 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Description détaillée des besoins
+              Description détaillée
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Spécifier les dimensions, urgences ou raisons logistiques..."
               rows={3}
-              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition resize-none"
+              className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
             />
           </div>
 
@@ -184,16 +197,16 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold py-2 px-4 rounded-xl transition"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold py-2 px-4 rounded-xl"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-5 rounded-xl shadow-md transition disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-5 rounded-xl shadow-md disabled:opacity-50"
             >
-              {loading ? "Transmission..." : "🚀 Envoyer la demande"}
+              {loading ? "Application..." : "Enregistrer les modifications"}
             </button>
           </div>
         </form>
@@ -202,4 +215,4 @@ const AddDemandeModal: React.FC<AddDemandeModalProps> = ({
   );
 };
 
-export default AddDemandeModal;
+export default EditDemandeModal;
