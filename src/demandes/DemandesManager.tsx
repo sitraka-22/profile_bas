@@ -134,8 +134,8 @@ const DemandesManager: React.FC = () => {
             <button
               onClick={() => setShowCorbeille((v) => !v)}
               className={`inline-flex items-center justify-center font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition active:scale-95 ${showCorbeille
-                  ? 'bg-gray-800 text-white hover:bg-gray-900'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                ? 'bg-gray-800 text-white hover:bg-gray-900'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
                 }`}
             >
               🗑️ Poubelle
@@ -175,8 +175,8 @@ const DemandesManager: React.FC = () => {
                   key={tab}
                   onClick={() => setCurrentTab(tab)}
                   className={`flex-1 text-center py-2 text-xs font-semibold rounded-lg transition-all ${currentTab === tab
-                      ? 'bg-blue-50 text-blue-600 shadow-xs'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                    ? 'bg-blue-50 text-blue-600 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                     }`}
                 >
                   {tab === 'Tous' ? '📁 Toutes' : tab === 'En_attente' ? '⏳ En attente' : tab === 'Approuve' ? '✅ Validées' : '❌ Rejetées'}
@@ -236,8 +236,8 @@ const DemandesManager: React.FC = () => {
                           </span>
                         ) : (
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${d.staut === 'Approuve' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                              d.staut === 'Refuse' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
+                            d.staut === 'Refuse' ? 'bg-red-50 text-red-700 border border-red-200' :
+                              'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
                             }`}>
                             {d.staut === 'Approuve' ? '● Validée' : d.staut === 'Refuse' ? '● Refusée' : '● En traitement'}
                           </span>
@@ -304,6 +304,7 @@ const DemandesManager: React.FC = () => {
       </div>
     </div>
   );
+  //hhhhhhhhh
 };
 //gggggggggggggg
 
