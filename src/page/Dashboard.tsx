@@ -1,86 +1,34 @@
 import React from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 // 1. Définition des types
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  textColorClass: string;
-  icon: React.ReactNode; // Ajout du type pour l'icône
-}
-
 interface ProjectItem {
   id: number;
   name: string;
   type: string;
   imageUrl: string;
-  lastComment: string; // Ajout du champ commentaire
+  lastComment: string;
 }
 
 export default function Dashboard() {
-  // 2. Simulation de données dynamiques avec icônes et commentaires
-  const stats: StatCardProps[] = [
-    {
-      title: "Chantiers Actifs",
-      value: 12,
-      textColorClass: "text-[#1a365d]",
-      icon: (
-        <svg
-          className="w-6 h-6 text-[#1a365d]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
-      ),
-    },
-    {
-      title: "Budget Global",
-      value: "450 000 €",
-      textColorClass: "text-green-600",
-      icon: (
-        <svg
-          className="w-6 h-6 text-green-600"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-    },
-    {
-      title: "Éléments Supprimés",
-      value: 4,
-      textColorClass: "text-red-500",
-      icon: (
-        <svg
-          className="w-6 h-6 text-red-500"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-          />
-        </svg>
-      ),
-    },
+  // Données pour l'histogramme (à remplacer plus tard par des données réelles)
+  const histogramData = [
+    { name: "Routes", chantiers: 5, budget: 1250000 },
+    { name: "Bâtiments", chantiers: 4, budget: 980000 },
+    { name: "Ponts", chantiers: 3, budget: 750000 },
+    { name: "Terrassement", chantiers: 2, budget: 420000 },
   ];
 
+  // Simulation des projets récents
   const recentProjects: ProjectItem[] = [
     {
       id: 1,
@@ -121,34 +69,53 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Cartes de statistiques avec Icônes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-md flex items-center justify-between"
-          >
-            <div>
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                {stat.title}
-              </div>
-              <div
-                className={`text-3xl font-black mt-2 ${stat.textColorClass}`}
-              >
-                {stat.value}
-              </div>
-            </div>
-            {/* Rond de fond pour l'icône */}
-            <div className="p-3 rounded-xl bg-gray-50 flex items-center justify-center">
-              {stat.icon}
-            </div>
-          </div>
-        ))}
+      {/* ==================== HISTOGRAMME ==================== */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold text-[#1a365d] mb-4">
+          Répartition des Chantiers par Type
+        </h3>
+        <div className="h-[380px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={histogramData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="name"
+                tick={{ fill: '#4b5563', fontSize: 13 }}
+              />
+              <YAxis
+                tick={{ fill: '#4b5563', fontSize: 13 }}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                formatter={(value: number, name: string) => [
+                  name === "budget"
+                    ? `${value.toLocaleString('fr-FR')} €`
+                    : value,
+                  name === "budget" ? "Budget" : "Nombre de chantiers"
+                ]}
+              />
+              <Legend />
+
+              <Bar
+                dataKey="chantiers"
+                fill="#1e40af"
+                name="Nombre de chantiers"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey="budget"
+                fill="#3b82f6"
+                name="Budget (€)"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <hr className="border-gray-100" />
 
-      {/* Section : Galerie des Chantiers récents avec Commentaires */}
+      {/* Section : Galerie des Chantiers récents */}
       <div className="flex flex-col gap-4">
         <div>
           <h3 className="text-lg font-bold text-[#1a365d]">
@@ -186,9 +153,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Zone du Commentaire en bas de carte */}
+              {/* Zone du Commentaire */}
               <div className="p-4 pt-2 border-t border-gray-50 bg-gray-50/50 rounded-b-xl flex gap-2 items-start">
-                {/* Petite icône de bulle de texte */}
                 <svg
                   className="w-4 h-4 text-gray-400 mt-0.5 shrink-0"
                   fill="none"

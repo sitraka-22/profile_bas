@@ -45,7 +45,7 @@ const ProjetsManager: React.FC = () => {
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
     isDanger: false,
   });
 
@@ -62,7 +62,7 @@ const ProjetsManager: React.FC = () => {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000); // Disparaît après 4 secondes
+    }, 4000);
   };
 
   const fetchProjets = async () => {
@@ -167,9 +167,14 @@ const ProjetsManager: React.FC = () => {
       search === ""
         ? true
         : p.nom_projet.toLowerCase().includes(search) ||
-          p.description?.toLowerCase().includes(search);
+        p.description?.toLowerCase().includes(search);
     return matchView && matchType && matchSearch;
   });
+
+  // Calcul du budget total (uniquement sur les chantiers actifs, non supprimés)
+  const budgetTotal = projets
+    .filter((p) => !p.is_deleted)
+    .reduce((total, p) => total + (p.budget || 0), 0);
 
   const formatBudget = (amount: number | null) => {
     if (!amount) return "Non spécifié";
@@ -196,13 +201,12 @@ const ProjetsManager: React.FC = () => {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-center p-4 rounded-xl shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-x-0 animate-fade-in-right ${
-              t.type === "success"
+            className={`flex items-center p-4 rounded-xl shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-x-0 animate-fade-in-right ${t.type === "success"
                 ? "bg-emerald-50/95 border-emerald-200 text-emerald-900"
                 : t.type === "error"
                   ? "bg-red-50/95 border-red-200 text-red-900"
                   : "bg-blue-50/95 border-blue-200 text-blue-900"
-            }`}
+              }`}
           >
             <div className="text-lg mr-3">
               {t.type === "success" && "✅"}
@@ -261,11 +265,36 @@ const ProjetsManager: React.FC = () => {
           </div>
         </div>
 
+        {/* === RÉCAPITULATIF BUDGET GLOBAL === */}
+        <div className="bg-gradient-to-r from-[#1a365d] to-[#2b6cb0] rounded-2xl p-5 shadow-lg shadow-blue-200/50 flex items-center justify-between">
+          <div>
+            <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">
+              Budget total des chantiers actifs
+            </p>
+            <p className="text-white text-2xl font-bold mt-1">
+              {new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: 'EUR',
+                maximumFractionDigits: 0
+              }).format(budgetTotal)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">
+              Chantiers actifs
+            </p>
+            <p className="text-white text-2xl font-bold mt-1">
+              {projets.filter((p) => !p.is_deleted).length}
+            </p>
+          </div>
+        </div>
+
         {/* Section Graphique */}
         <ProjetsChart projets={projets} />
 
         {/* Double sous-menu + barre de recherche */}
         <div className="flex flex-col gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+          {/* ... le reste du code reste identique ... */}
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div className="flex bg-gray-100 p-1 rounded-xl">
               <button
@@ -338,6 +367,7 @@ const ProjetsManager: React.FC = () => {
                 key={p.id_projet}
                 className={`bg-white rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between overflow-hidden ${p.is_deleted ? "border-red-100 shadow-sm bg-red-50/10" : "border-gray-100 shadow-sm"}`}
               >
+                {/* Le reste du code des cartes reste inchangé */}
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-start gap-2">
                     <h3 className="font-bold text-gray-900 tracking-tight text-base line-clamp-2">
@@ -442,7 +472,7 @@ const ProjetsManager: React.FC = () => {
           onProjectUpdated={handleProjectUpdated}
         />
 
-        {/* POPUP MODAL DE CONFIRMATION PERSONNALISÉ (Tailwind UI) */}
+        {/* POPUP MODAL DE CONFIRMATION PERSONNALISÉ */}
         {confirmModal.isOpen && (
           <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden p-6 space-y-4 transform transition-all scale-100 animate-fade-in">
@@ -474,11 +504,10 @@ const ProjetsManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={confirmModal.onConfirm}
-                  className={`py-2 px-4 rounded-xl text-white shadow-md transition ${
-                    confirmModal.isDanger
-                      ? "bg-red-600 hover:bg-red-700 shadow-red-100"
-                      : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
-                  }`}
+                  className={`py-2 px-4 rounded-xl text-white shadow-md transition ${confirmModal.isDanger
+                    ? "bg-red-600 hover:bg-red-700 shadow-red-100"
+                    : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
+                    }`}
                 >
                   Confirmer l'action
                 </button>
