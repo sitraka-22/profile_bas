@@ -49,13 +49,13 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
               to="/ListeProjets"
               className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
             >
-              Projet
+              Contrat
             </Link>
             <Link
               to="/AjouterProjet"
               className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
             >
-              AjouterProjet
+              Histogramme
             </Link>
             <Link
               to="/employes"
@@ -75,10 +75,10 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
               Demandes
             </Link>
             <Link
-              to="/Poubeles"
+              to="/verification"
               className="text-sm font-semibold hover:text-blue-200 transition-colors bg-[#2b6cb0] px-3 py-1.5 rounded-lg shadow-sm"
             >
-              Poubele
+              Vérification
             </Link>
             {/* Bouton de déconnexion */}
             <button

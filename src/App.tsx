@@ -21,7 +21,7 @@ import RessourcesManager from "./ressource/ressource"; // Nouveau composant pour
 import ProjetsManager from "./projets/ProjetsManager";
 import ProjetsChart from "./projets/ProjetsChart";
 import DemandesManager from "./demandes/DemandesManager";
-import GestionPoubelles from "./poubel/poubel";
+import Verification from "./poubel/Verification";
 function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const navigate = useNavigate();
   return (
@@ -101,7 +101,7 @@ function App() {
           />
           <Route
             path="/ListeProjets"
-           
+
 
             element={
               isAuthenticated ? <ProjetsManager /> : <Navigate to="/" replace />
@@ -144,9 +144,9 @@ function App() {
               )
             }
           />
-          
 
-          
+
+
           <Route
             path="/employes"
             element={isAuthenticated ? <EmployeFormBuilder /> : <Navigate to="/" replace />}
@@ -154,33 +154,34 @@ function App() {
 
 
           <Route
-          path="/ressources"
-          element={
-            isAuthenticated ? (
-              <RessourcesManager />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        /> <Route
-          path="/demandes"
-          element={
-            isAuthenticated ? (
-              <DemandesManager />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        /> <Route
-          path="/Poubeles"
-          element={
-            isAuthenticated ? (
-              <GestionPoubelles />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+            path="/ressources"
+            element={
+              isAuthenticated ? (
+                <RessourcesManager />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          /> <Route
+            path="/demandes"
+            element={
+              isAuthenticated ? (
+                <DemandesManager />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/verification"
+            element={
+              isAuthenticated ? (
+                <Verification />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
           {/* Route Register de secours */}
           <Route path="/register" element={<Register />} />
 
